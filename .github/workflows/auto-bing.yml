@@ -4,10 +4,9 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 1 * * *"
-  push:
-    branches: [ gh-pages ]
-  pull_request:
-    branches: [ gh-pages ]
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -15,21 +14,22 @@ jobs:
     steps:
     # checkout
     - name: checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     # setup nodejs
     - name: Use Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v4
       with:
-        node-version: 16.x
+        node-version: 20.x
     - run: node ./assets/js/bing.js
     # commit
     - name: commit file
       run: |
         git config --local user.email 'github-actions[bot]@users.noreply.github.com'
         git config --local user.name 'github-actions[bot]'
-        git diff --exit-code || git add . && git commit -am '[bot] update images.json' --allow-empty
-    # push 
-    - name: push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GH_TOKEN }}
+        git add assets/json/images.json
+        if git diff --cached --quiet; then
+          echo "No changes in images.json"
+          exit 0
+        fi
+        git commit -m '[bot] update images.json'
+        git push
